@@ -7,7 +7,8 @@ import { map, Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class LivroService {
-  private API_URL = "http://localhost:3001/livros"
+
+  private API_URL = "http://localhost:3000/livros"
 
   generos: GeneroLiterario[] = [
     { id: 'romance', value: 'Romance' },
@@ -17,31 +18,49 @@ export class LivroService {
     { id: 'tecnicos', value: 'Técnicos' }
   ];
 
+  constructor(private httpClient: HttpClient) { }
 
-  constructor(
-    private httpClient: HttpClient
-  ) { }
-
-  obterLivros(): Observable<Livro[]>{
+  obterLivros(): Observable<Livro[]> {
     return this.httpClient.get<Livro[]>(this.API_URL);
   }
-  organizar(): Observable<Map<string, Livro[]> >{
+
+  obterLivroPorId(id: string): Observable<Livro> {
+    return this.httpClient.get<Livro>(`${this.API_URL}/${id}`);
+  }
+
+  organizarLivrosPorGenero(): Observable<Map<string, Livro[]>>{
     return this.obterLivros().pipe(
-      map((livros: Livro[] ) => {
-        const livrosPorGeneros = new Map< string, Livro[]>();
+      map((livros: Livro[]) => {
+        const livrosPorGenero = new Map<string, Livro[]>();
+
         livros.forEach((livro: Livro) => {
           const generoId = typeof livro.genero === 'string' ? livro.genero : livro.genero?.id;
-          
-          if(generoId){
-            if(!livrosPorGeneros.has(generoId)){
-              livrosPorGeneros.set(generoId, [])
+
+          if(generoId) {
+            if(!livrosPorGenero.has(generoId)) {
+              livrosPorGenero.set(generoId, [])
             }
-            livrosPorGeneros.get(generoId)?.push(livro)
+            livrosPorGenero.get(generoId)?.push(livro)
           }
-        });
-        return livrosPorGeneros
+        })
+        return livrosPorGenero
       })
     )
   }
 
+  adicionarLivro(novoLivro: Livro): Observable<Livro> {
+    return this.httpClient.post<Livro>(this.API_URL, novoLivro)
+  }
+
+  atualizarFavorito(livro: Livro): Observable<Livro> {
+    return this.httpClient.patch<Livro>(`${this.API_URL}/${livro.id}`, {favorito: livro.favorito})
+  }
+
+  editarLivro(livro: Livro): Observable<Livro> {
+    return this.httpClient.put<Livro>(`${this.API_URL}/${livro.id}`, livro)
+  }
+
+  excluirLivro(id: string): Observable<void> {
+    return this.httpClient.delete<void>(`${this.API_URL}/${id}`);
+  }
 }
